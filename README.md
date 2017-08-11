@@ -1,6 +1,36 @@
 # LinuxServer
 Notes about the Ubuntu Server
 
+ssh root@46.163.78.221
+passwd
+adduser michael
+passwd
+su michael
+exit
+adduser michael sudo
+su michael
+sudo apt-get install nano
+cd ~
+touch .bash_aliases
+nano .bash_aliases
+!> copy past from github
+nano .bashrc
+remove comment inline
+#force_color_prompt=yes
+change line
+        PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m$ '
+to
+        PS1='${debian_chroot:+($debian_chroot)}\[\033[01;31m\]\u@\h\[\033[00m\]:\[\033[01;33m\]\w\[\033[00m$\nDo: '
+source .bashrc
+
+
+
+Important files
+sudo cat /etc/sudoers
+
+
+
+
 root dir for www files
 /var/www/vhosts/lvps46-163-78-221.dedicated.hosteurope.de
 
