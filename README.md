@@ -168,11 +168,11 @@ for everything in this chapter make
 
 first!
 
-##### Links
+### Links
 * https://askubuntu.com/questions/831292/how-to-install-postgresql-9-6-on-any-ubuntu-version
 * https://tecadmin.net/install-postgresql-server-on-ubuntu/
 
-##### Adding the repository
+### Adding the repository
 ```bash
 su michael
 sudo nano /etc/apt/sources.list
@@ -180,7 +180,7 @@ deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main
 wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
 sudo apt-get update
 ```
-## Postgres
+### Postgres
 Then install Postgres 9.6
 
 ```sudo apt-get install postgresql-9.6 postgresql-contrib-9.6```
@@ -190,22 +190,26 @@ Terminal returns:
 > Success. You can now start the database server using:
         /usr/lib/postgresql/9.6/bin/pg_ctl -D /var/lib/postgresql/9.6/main -l logfile start
 
-``` su postgres ``` to __start__ the server do exactly like it is said above
+``` su postgres && cd ~ ``` to __start__ the server do exactly like it is said above
 
 ``` /usr/lib/postgresql/9.6/bin/pg_ctl -D /var/lib/postgresql/9.6/main -l logfile start ```
 
 then simply ``` exit ```
 
-### Errors
+#### Errors
 > pg_ctl: could not open PID file "/var/lib/postgresql/9.6/main/postmaster.pid": Permission denied
 
 did you ``` su postgres ``` ?
 
+> could not change directory to "/root": Permission denied
 
-## Postgis
+did you ``` cd ~ ``` of postgres user?
+
+
+### Postgis
 ```apt-get install postgis```
 
-#### PostgreSQL Server status
+### PostgreSQL Server status
 ```sudo service postgresql status```
 
 should return
@@ -224,7 +228,7 @@ or
 
 ``` ps -f -u postgres ``` __WARNING__ this one does not retrun anything
 
-#### PostgreSQL Server ports
+### PostgreSQL Server ports
 
 These commands should show that postgres is running Listening on port 5432
 
@@ -240,11 +244,21 @@ the port should be identical to
 
 > port = 5432
 
-#### Interacting with the server via __SSH__ and __psql__
+### Interacting with the server via __SSH__ and __psql__
 
-Log into __psql__ with
+change to user postgres
 
-```sudo -u postgres psql postgres```
+``` su postgres ```
+
+then start psql
+
+``` psql ```
+
+#### Error
+> psql: could not connect to server: No such file or directory  
+>       Is the server running locally and accepting
+>       connections on Unix domain socket "/var/run/postgresql/.s.PGSQL.5432"?
+
 
 and run
 
