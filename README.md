@@ -25,14 +25,19 @@ and add michael to sudoers with
 ## What to Install
         sudo apt-get install nano \
 
-## Useful commands for general use
-To find a directory
 
-``` find / -type d -name 'httpdocs' ```
+## Important files
+* sudo users ```sudo cat /etc/sudoers```
+* list of repositories ``` sudo cat /etc/apt/sources.list ```
 
-To find a file
+## Important locations
+root dir for webspace (Plesk) user mjendryke ``` /var/www/vhosts/lvps46-163-78-221.dedicated.hosteurope.de ```
 
-``` find / -type f -name 'file' ```
+## Useful commands
+* To list all Users ```cut -d: -f1 /etc/passwd``` or ```cat /etc/passwd```
+* List of ports ```sudo iptables -L``` or ```sudo netstat -anp | grep post```
+* To find a directory ``` find / -type d -name 'httpdocs' ```
+* To find a file ``` find / -type f -name 'file' ```
 
 ### Create additional files for aliases and PATH
 create file for aliases __.bash_aliases__ and copy paste content from __WARNING__ maybe just download the file from github directly
@@ -289,68 +294,175 @@ add
 and
         sudo /etc/init.d/postgresql reload
 
-## Important files
-* sudo users ```sudo cat /etc/sudoers```
-* list of repositories ``` sudo cat /etc/apt/sources.list ```
-
-## Useful commands
-To list all Users ```cut -d: -f1 /etc/passwd``` or ```cat /etc/passwd```
-
-List of ports
-        sudo iptables -L
-or
-        sudo netstat -anp | grep post
-
-
-root dir for www files
-/var/www/vhosts/lvps46-163-78-221.dedicated.hosteurope.de
-
-
 ## OpenVPN
+
+### Install and start Access Server
+* https://openvpn.net/index.php/access-server/download-openvpn-as-sw/113.html?osfamily=Ubuntu
+
+Download deb from
+http://swupdate.openvpn.org/as/openvpn-as-2.1.9-Ubuntu16.amd_64.deb
+```
+sudo -u michael -i     
+cd ~
+mkdir downloads
 cd downloads
-Ubuntu/Debian:
+wget http://swupdate.openvpn.org/as/openvpn-as-2.1.9-Ubuntu16.amd_64.deb
+sudo dpkg -i openvpn-as-2.1.9-Ubuntu16.amd_64.deb
 
-Download and save the appropriate Debian package (.deb) file. Then go to the directory where you placed the downloaded file and enter the following command line, substituting the package filename:
+```
+shoud return
 
-dpkg -i openvpn-as-2.1.9-Ubuntu16.amd_64.deb
+> Selecting previously unselected package openvpn-as.   
+> (Reading database ... 132155 files and directories currently installed.)      
+> Preparing to unpack openvpn-as-2.1.9-Ubuntu16.amd_64.deb ...  
+> Unpacking openvpn-as (2.1.9-Ubuntu16) ...     
+> Setting up openvpn-as (2.1.9-Ubuntu16) ...    
+> The Access Server has been successfully installed in /usr/local/openvpn_as    
+> Configuration log file has been written to __/usr/local/openvpn_as/init.log__     
+> Please enter __"passwd openvpn"__ to set the initial      
+> administrative password, then login as "openvpn" to continue  
+> configuration here: https://46.163.78.221:943/admin   
+> To reconfigure manually, use the __/usr/local/openvpn_as/bin/ovpn-init__ tool.    
 
-This should successfully install the Access Server package.
+> Access Server web UIs are available here:     
+> Admin  UI: https://46.163.78.221:943/admin    
+> Client UI: https://46.163.78.221:943/
+
+So do as it said ``` sudo passwd openvpn ``` and go to https://46.163.78.221:943/admin
 
 Note that if you ever have to remove the Access Server installation, the command to use is:
 
-dpkg -r openvpn-as
+``` dpkg -r openvpn-as ```
 
-Install obfsproxy
-apt-get install obfsproxy
+### Install obfsproxy
+``` apt-get install obfsproxy ```
 
 More about openvpn and obfsproxy
-https://greycoder.com/openvpn-china/
+* https://greycoder.com/openvpn-china/
 
-More about stunnel
-https://silvenga.com/openvpn-sheathing/
+### Install and run stunnel
+* https://silvenga.com/openvpn-sheathing/
 
-Install Tomcat8
-https://www.digitalocean.com/community/tutorials/how-to-install-apache-tomcat-7-on-ubuntu-14-04-via-apt-get
-sudo apt-get install tomcat8
-sudo nano /etc/default/tomcat8
-JAVA_OPTS="-Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Xmx512m -XX:MaxPermSize=256m -XX:+UseConcMarkSweepGC"
-sudo service tomcat8 restart
-DOES NOT WORK http://server_IP_address:8080
-Set firewall rules in Plesk (only plesk is needed for firewall config
+```
+sudo apt-get update            # always a good idea
+sudo apt-get upgrade           # let's start fresh
+sudo apt-get install stunnel4  # 4 is the newest version as of 4/2014
+cd /tmp/
+```
+Create key with
+Use OpenSSL to generate a key called stunnel.key with a bit strength of 2K
+Make sure that we use no password (convenience, OpenVPN is already secure)
+```
+openssl genrsa -out stunnel.key 2048
+```
 
-sudo apt-get install tomcat8-docs tomcat8-admin
+Use OpenSSL to generate a new certificate signed by that key we just created 1826 days = 5 years, change if needed
+```
+openssl req -new -x509 -key stunnel.key -out stunnel.crt -days 1826
+```
+Concatenate the key and the certificate into the file /etc/stunnel/stunnel.pem
+```
+cat stunnel.key stunnel.crt > stunnel.pem
+```
+and move the __stunnel.pem__ to /etc/stunnel/
+```
+sudo cp stunnel.pem /etc/stunnel/stunnel.pem
+```
+Now create stunnel.conf
+```
+touch stunnel.conf && nano stunnel.conf
+```
+And paste
+> \# Location of the certificate that we created        
+> cert = /etc/stunnel/stunnel.pem       
+
+> \# Name of the connection     
+> [openvpn-localhost]   
+> \# The port to listen on      
+> accept = 8443
+> \# Connect to the local OpenVPN server        
+> connect = 127.0.0.1:1192      
+
+> \# Another alternative        
+> \# Forwarding connections to Private Internet Access  
+> [openvpn-florida-usa]
+> accept = 1198
+> connect = us-florida.privateinternetaccess.com:443    
+
+Copy conf file to /etc/stunnel/
+
+``` sudo cp stunnel.conf /etc/stunnel/stunnel.conf ```
+
+Clean up your mess
+```
+rm stunnel.*
+```
+
+Enable and start sTunnel.
+
+``` sudo nano /etc/default/stunnel4 ``` and Change *ENABLED=0* to *ENABLED=1*
+
+then start stunnel ``` service stunnel4 start ```
 
 
-sudo nano /etc/tomcasudo service tomcat8 restart
+## Install Tomcat8
+* https://www.digitalocean.com/community/tutorials/how-to-install-apache-tomcat-7-on-ubuntu-14-04-via-apt-get
 
-<user username="admin" password="j=i/HGyuawuc8(DBj.92pBt^" roles="manager-gui,admin-gui"/>
+```
+sudo -u michael -i
+cd ~
+```
 
-download geoserver.war
-find the tomcat webapps folder
+``` sudo apt-get install tomcat8 ```
 
-find / -type d -name 'webapps'
-cp downloads/geoserver/geoserver.war /var/lib/tomcat8/webapps/.
+``` sudo nano /etc/default/tomcat8 ```
 
+Replace __JAVA_OPTS__ line with
+> JAVA_OPTS="-Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Xmx512m -XX:MaxPermSize=256m -XX:+UseConcMarkSweepGC"
+
+Restart the service
+
+``` sudo service tomcat8 restart```
+and check
+http://server_IP_address:8080
+
+Now install more stuff
+
+``` sudo apt-get install tomcat8-docs tomcat8-admin tomcat8-examples```
+
+Add username and password
+
+``` sudo nano /etc/tomcat8/tomcat-users.xml ```
+
+and add line inside ``` <tomcat-users> ```
+
+``` <user username="admin" password="PASSWORD" roles="manager-gui,admin-gui"/>```
+
+Restart the service
+
+``` sudo service tomcat8 restart```
+
+## Geoserver
+
+Tomcat needs to run, then navigate to the http://46.163.78.221:8080/manager/html
+
+```
+sudo -u michael -i
+cd ~
+cd downloads
+```
+and download the *.war file with wget
+```
+wget https://downloads.sourceforge.net/project/geoserver/GeoServer/2.11.2/geoserver-2.11.2-war.zip?r=http%3A%2F%2Fgeoserver.org%2Frelease%2Fstable%2F&ts=1502612423&use_mirror=nchc
+```
+Unzip it
+
+And move the war file to the webapps folder of tomcat ```find / -type d -name 'webapps'```
+
+```sudo cp geoserver.war /var/lib/tomcat8/webapps/.```
+
+Restart Tomcat
+``` sudo service tomcat8 restart```
 
 Deleting, Removing, Purging
 
