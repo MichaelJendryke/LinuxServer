@@ -1,13 +1,16 @@
 # LinuxServer
 __Notes about the Ubuntu Server at 46.163.78.221__
 
+## Fresh system after reset
+
+Get the initial password from KIS and navigate to the Plesk login screen. Log in as admin. Then you are automatically redirected to the page to create the Administrator account. Unter __Create Your Webspace__ add *mjendryke*.
+
 ## Access
-simply start Anaconda shell and ``` activate webdev ```
-then
+simply start Anaconda shell and ``` activate webdev ``` and ```ssh root@46.163.78.221``` with the initial password from KIS. Change root password with ``` passwd ```.
 
-```ssh root@46.163.78.221```
 
-## User
+
+## Add User
 Change root password with
 ``` passwd ```
 then add user michael with
@@ -62,19 +65,236 @@ and add at the end of .bashrc file
 
 Finally run ``` source .bashrc ``` and test ``` echo $PATH ``` if the changes have been made.
 
+## POSTGRES and POSTGIS
+
+for everything in this chapter make
+
+``` su michael && cd ~ ```
+
+first!
+
+### Links
+* https://askubuntu.com/questions/831292/how-to-install-postgresql-9-6-on-any-ubuntu-version
+* https://tecadmin.net/install-postgresql-server-on-ubuntu/
+* https://help.ubuntu.com/community/PostgreSQL
+
+### Postgres
+Install Postgres current version
+
+```sudo apt-get install postgresql postgresql-contrib```
+
+then the following command brings us right into __psql__
+
+``` sudo -u postgres psql postgres ```
+
+and make sure you have set a password for postgres
+
+``` \password postgres ```
+
+Exit psql with ```\q``` and you are __back to user michael__
+
+__works!!!__
 
 
-Important files
-sudo cat /etc/sudoers SUDO Users
-/etc/apt/sources.list LIST of repositories
-/etc/postgresql/9.6/main/pg_hba.conf PSQL server configuration
-/etc/postgresql/9.6/main/postgresql.conf
+### Adding the repository (optional for version 9.6)
+```bash
+su michael && cd ~
+sudo nano /etc/apt/sources.list
+deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+sudo apt-get update
+```
 
-Useful commands
-To list all Users
-cut -d: -f1 /etc/passwd
+#### 9.6
+Install Postgres 9.6
+
+```sudo apt-get install postgresql-9.6 postgresql-contrib-9.6```
+
+Terminal returns:
+
+> Success. You can now start the database server using:
+        /usr/lib/postgresql/9.6/bin/pg_ctl -D /var/lib/postgresql/9.6/main -l logfile start
+
+``` su postgres && cd ~ ``` to __start__ the server do exactly like it is said above
+
+``` /usr/lib/postgresql/9.6/bin/pg_ctl -D /var/lib/postgresql/9.6/main -l logfile start ```
+
+then simply ``` exit ```
+
+#### Errors
+> pg_ctl: could not open PID file "/var/lib/postgresql/9.6/main/postmaster.pid": Permission denied
+
+did you ``` su postgres ``` ?
+
+> could not change directory to "/root": Permission denied
+
+did you ``` cd ~ ``` of postgres user?
+
+### PostgreSQL Server status
+```sudo service postgresql status```
+
+should return
+
+> postgresql.service - PostgreSQL RDBMS
+>   Loaded: loaded (/lib/systemd/system/postgresql.service; enabled; vendor preset: enabled)    
+>   Active: active (exited) since Sat 2017-08-12 10:19:28 CEST; 30min ago       
+>  Process: 4180 ExecReload=/bin/true (code=exited, status=0/SUCCESS)   
+>  Process: 6367 ExecStart=/bin/true (code=exited, status=0/SUCCESS)    
+>Main PID: 6367 (code=exited, status=0/SUCCESS)
+you can also try this to see if postgres is running
+
+``` ps -ef | grep postgres ```
+
+> postgres  9819     1  0 00:23 ?        00:00:00 /usr/lib/postgresql/9.5/bin/postgres -D /var/lib/postgresql/9.5/main -c config_file=/etc/postgresql/9.5/main/postgresql.conf  
+> postgres  9821  9819  0 00:23 ?        00:00:00 postgres: checkpointer process        
+> postgres  9822  9819  0 00:23 ?        00:00:00 postgres: writer process      
+> postgres  9823  9819  0 00:23 ?        00:00:00 postgres: wal writer process  
+> postgres  9824  9819  0 00:23 ?        00:00:00 postgres: autovacuum launcher process
+> postgres  9825  9819  0 00:23 ?        00:00:00 postgres: stats collector process     
+> michael  14880  7755  0 00:36 pts/0    00:00:00 grep --color=auto postgres
+
 or
-cat /etc/passwd
+
+``` ps -f -u postgres ```
+
+### PostgreSQL Server ports
+
+These commands should show that postgres is running Listening on port 5432
+
+``` sudo netstat -ltnp | grep postgres ```
+> tcp        0      0 127.0.0.1:5432          0.0.0.0:*               LISTEN      9819/postgres         
+> tcp6       0      0 ::1:5432                :::*                    LISTEN      9819/postgres
+
+and
+
+``` sudo lsof -n -u postgres | grep LISTEN ```
+
+> postgres 9819 postgres    6u  IPv6         1752214672      0t0        TCP [::1]:postgresql (LISTEN)   
+> postgres 9819 postgres    7u  IPv4         1752214673      0t0        TCP 127.0.0.1:postgresql (LISTEN)
+
+
+the port should be identical to
+
+``` cat /etc/postgresql/9.6/main/postgresql.conf | grep port ```
+
+> port = 5432
+
+
+
+### Interacting with the server via __SSH__ and __psql__
+
+* https://www.postgresql.org/docs/9.5/static/tutorial-createdb.html
+
+Change to postgres user
+
+``` sudo -u postgres -i ``` or ``` su postgres ```
+
+create a database (you are posrgres user now)
+
+``` createdb mydb ```
+
+check if the data base is there
+
+``` psql ```
+
+and then this command will list all the databases
+
+``` \list ```
+
+__psql__ will by default connect to postgres DB, You can change the DB by connecting to the one you want
+
+``` psql -d mydb ```
+
+or
+
+``` psql ``` and then ``` \c mydb ``` (I perfer the second way)
+
+quit psql with
+
+``` \q ```
+
+### Postgis
+
+```
+su michael      
+cd ~
+sudo apt-get install postgis
+```
+And create the extension for postgis after ``` psql ``` and ``` \c geodata ```
+
+```CREATE EXTENSION postgis``` __WARNING__ do not do this is postgres DB
+
+#### Configuration on Server side
+* http://www.thegeekstuff.com/2014/02/enable-remote-postgresql-connection
+* https://help.ubuntu.com/community/PostgreSQL
+
+```su michael      
+cd ~    ```
+
+Open file __pg_hba.conf__
+
+```sudo nano /etc/postgresql/9.5/main/pg_hba.conf```
+
+and add the server user and database to the list of allowed hosts
+
+```
+host     all             all             BlackBox-PC             md5
+host     all             all             0.0.0.0/0               md5
+```
+
+close file and restart the server with
+
+``` sudo service postgresql restart ``` maybe * reload * is enough here
+
+Open file __postgresql.conf__
+
+``` sudo nano /etc/postgresql/9.5/main/postgresql.conf ```
+
+and uncomment and change the line to accept all IPs
+
+``` #listen_addresses = 'localhost' ```
+
+to
+
+``` listen_addresses = '*' ```
+
+close file and restart the server with
+
+``` sudo service postgresql restart ``` maybe * reload * is enough here
+
+
+
+
+#### Configuration on Client side
+On client side try
+psql -U postgres -h 192.168.102.1
+        does not work
+
+On server server
+        sudo nano /etc/postgresql/9.6/main/postgresql.conf
+change
+        #listen_addresses = 'localhost'
+to
+        listen_addresses='\*'
+to listen to all IP addresses and interfaces
+
+and do a required restart
+        sudo /etc/init.d/postgresql restart
+        sudo service postgresql status
+
+then
+        sudo nano /etc/postgresql/9.6/main/pg_hba.conf
+add
+        host    all         all         121.60.37.76    md5
+and
+        sudo /etc/init.d/postgresql reload
+
+## Important files
+* sudo users ```sudo cat /etc/sudoers```
+* list of repositories ``` sudo cat /etc/apt/sources.list ```
+
+## Useful commands
+To list all Users ```cut -d: -f1 /etc/passwd``` or ```cat /etc/passwd```
 
 List of ports
         sudo iptables -L
@@ -82,22 +302,11 @@ or
         sudo netstat -anp | grep post
 
 
-
-
 root dir for www files
 /var/www/vhosts/lvps46-163-78-221.dedicated.hosteurope.de
 
 
-05082017
-sudo apt-get install nano
-
-find directory
-find / -type d -name 'httpdocs'
-
-find file
-
-
-OpenVPN:
+## OpenVPN
 cd downloads
 Ubuntu/Debian:
 
@@ -158,184 +367,3 @@ PHP modules
 php -v
 php -m (list modules)
 install zip module: apt-get install php7.0-zip
-
-
-## POSTGRES and POSTGIS
-
-for everything in this chapter make
-
-``` su michael ```
-
-first!
-
-### Links
-* https://askubuntu.com/questions/831292/how-to-install-postgresql-9-6-on-any-ubuntu-version
-* https://tecadmin.net/install-postgresql-server-on-ubuntu/
-
-### Adding the repository
-```bash
-su michael
-sudo nano /etc/apt/sources.list
-deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main
-wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-sudo apt-get update
-```
-### Postgres
-Then install Postgres 9.6
-
-```sudo apt-get install postgresql-9.6 postgresql-contrib-9.6```
-
-Terminal returns:
-
-> Success. You can now start the database server using:
-        /usr/lib/postgresql/9.6/bin/pg_ctl -D /var/lib/postgresql/9.6/main -l logfile start
-
-``` su postgres && cd ~ ``` to __start__ the server do exactly like it is said above
-
-``` /usr/lib/postgresql/9.6/bin/pg_ctl -D /var/lib/postgresql/9.6/main -l logfile start ```
-
-then simply ``` exit ```
-
-#### Errors
-> pg_ctl: could not open PID file "/var/lib/postgresql/9.6/main/postmaster.pid": Permission denied
-
-did you ``` su postgres ``` ?
-
-> could not change directory to "/root": Permission denied
-
-did you ``` cd ~ ``` of postgres user?
-
-
-### Postgis
-```apt-get install postgis```
-
-### PostgreSQL Server status
-```sudo service postgresql status```
-
-should return
-
-> postgresql.service - PostgreSQL RDBMS
->   Loaded: loaded (/lib/systemd/system/postgresql.service; enabled; vendor preset: enabled)    
->   Active: active (exited) since Sat 2017-08-12 10:19:28 CEST; 30min ago       
->  Process: 4180 ExecReload=/bin/true (code=exited, status=0/SUCCESS)   
->  Process: 6367 ExecStart=/bin/true (code=exited, status=0/SUCCESS)    
->Main PID: 6367 (code=exited, status=0/SUCCESS)
-you can also try this to see if postgres is running
-
-``` ps -ef | grep postgres ```
-
-or
-
-``` ps -f -u postgres ``` __WARNING__ this one does not retrun anything
-
-### PostgreSQL Server ports
-
-These commands should show that postgres is running Listening on port 5432
-
-``` sudo netstat -ltnp | grep postgres ```
-
-and
-
-``` sudo lsof -n -u postgres | grep LISTEN ``` __WARNING__ this one does not retrun anything
-
-the port should be identical to
-
-``` cat /etc/postgresql/9.6/main/postgresql.conf | grep port ```
-
-> port = 5432
-
-### Interacting with the server via __SSH__ and __psql__
-
-change to user postgres
-
-``` su postgres ```
-
-then start psql
-
-``` psql ```
-
-#### Error
-> psql: could not connect to server: No such file or directory  
->       Is the server running locally and accepting
->       connections on Unix domain socket "/var/run/postgresql/.s.PGSQL.5432"?
-
-
-and run
-
-```CREATE EXTENSION postgis```
-
-quit psql with
-
-``` \q ```
-
-#### Configuration on Server side
-* http://www.thegeekstuff.com/2014/02/enable-remote-postgresql-connection
-* https://help.ubuntu.com/community/PostgreSQL
-
-Open file __pg_hba.conf__
-
-```sudo nano /etc/postgresql/9.6/main/pg_hba.conf```
-
-and add the server user and database to the list of allowed hosts
-
-``` host        all         all         121.60.37.76    peer ```
-
-close file and restart the server with
-
-``` sudo service postgresql restart ``` maybe * reload * is enough here
-
-Open file __postgresql.conf__
-
-``` sudo nano /etc/postgresql/9.6/main/postgresql.conf ```
-
-and uncomment and change the line to accept all IPs
-
-``` #listen_addresses = 'localhost' ```
-
-to
-
-``` listen_addresses = '*' ```
-
-close file and restart the server with
-
-``` sudo service postgresql restart ``` maybe * reload * is enough here
-
-
-
-
-#### Configuration on Client side
-On client side try
-psql -U postgres -h 192.168.102.1
-        does not work
-
-On server server
-        sudo nano /etc/postgresql/9.6/main/postgresql.conf
-change
-        #listen_addresses = 'localhost'
-to
-        listen_addresses='\*'
-to listen to all IP addresses and interfaces
-
-and do a required restart
-        sudo /etc/init.d/postgresql restart
-        sudo service postgresql status
-
-then
-        sudo nano /etc/postgresql/9.6/main/pg_hba.conf
-add
-        host    all         all         121.60.37.76    md5
-and
-        sudo /etc/init.d/postgresql reload
-
-To list all databases
-sudo -u postgres psql postgres
-\list
-to list all tables
-\dt *.*
-list all Users
-\du
-
-CREATE SCHEMA test;
-CREATE USER michael PASSWORD 'michael';
-GRANT ALL ON ALL TABLES IN SCHEMA test TO michael;
-GRANT ALL PRIVILEGES ON DATABASE "mydb" to postgres
