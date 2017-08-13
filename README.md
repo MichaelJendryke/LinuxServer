@@ -1,4 +1,4 @@
-# LinuxServer
+# Linux Server
 __Notes about the Ubuntu Server at 46.163.78.221__
 
 ## Fresh system after reset
